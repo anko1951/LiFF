@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "ESNext",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    "module": "NodeNext", // NodeNext モジュールに設定
+    "moduleResolution": "NodeNext", // NodeNext に設定
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",

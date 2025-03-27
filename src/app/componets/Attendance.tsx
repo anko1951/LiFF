@@ -21,17 +21,19 @@ export default function Attendance() {
   const sendAttendance = async (type: "clockIn" | "clockOut") => {
     if (!userId) return;
 
-    const response = await fetch(
-      "AKfycbx13are03gB_IkbnBLFjx0Z-68eY1pOcL6F-w6H9tklqRB3BfrcsAIOa1C5ixnZsk5F",
-      {
+    try {
+      const response = await fetch("/api/attendance", {
         method: "POST",
         body: JSON.stringify({ userId, type }),
         headers: { "Content-Type": "application/json" },
-      }
-    );
+      });
 
-    const data = await response.json();
-    alert(data.status === "success" ? "打刻成功！" : "エラー");
+      const data = await response.json();
+      alert(data.status === "success" ? "打刻成功！" : "エラー");
+    } catch (error) {
+      console.error("fetchエラー:", error);
+      alert("通信エラー");
+    }
   };
 
   return (
