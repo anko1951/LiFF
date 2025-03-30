@@ -1,9 +1,8 @@
+// page.tsx
+"use client";
+
 import Attendance from "./componets/Attendance";
 
-export default function Home() {
-  return (
-    <main>
-      <Attendance />
-    </main>
-  );
+export default function HomePage() {
+  return <Attendance />;
 }
