@@ -1,0 +1,27 @@
+export async function POST(req: Request) {
+  const body = await req.json();
+
+  const res = await fetch(
+    "https://script.google.com/macros/s/AKfycbyFts1OiG-K5yLIaabUSoIyjzXXS5FTisBvfBakxALc-AL8cUkY6ZNjLKRezsC82__e/exec",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    }
+  );
+
+  if (!res.ok) {
+    return new Response(JSON.stringify({ success: false }), {
+      status: 500,
+    });
+  }
+
+  const result = await res.json();
+
+  return new Response(JSON.stringify({ success: true, result }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}

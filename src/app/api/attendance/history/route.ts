@@ -2,7 +2,7 @@
 
 export async function GET() {
   const response = await fetch(
-    "https://script.google.com/macros/s/AKfycbwrq--Xx1A46623dyMxv3wfktkcgyAUNi2Hpmi-TjSg32jyGvwe8A3ybLFXb7f1CAec/exec"
+    "https://script.google.com/macros/s/AKfycbyFts1OiG-K5yLIaabUSoIyjzXXS5FTisBvfBakxALc-AL8cUkY6ZNjLKRezsC82__e/exec"
   ); // ← 正しいGAS URLにする！
   const data = await response.json();
 
