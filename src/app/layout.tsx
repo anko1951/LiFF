@@ -1,5 +1,10 @@
+// app/layout.tsx
+
 import "./globals.css";
 
+export const metadata = {
+  title: "勤怠管理",
+};
 
 export default function RootLayout({
   children,
@@ -8,9 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
