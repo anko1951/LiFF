@@ -12,25 +12,23 @@ export default function Attendance() {
   const [overtimeReason, setOvertimeReason] = useState("");
   const [isLate, setIsLate] = useState(false);
   const [isOvertime, setIsOvertime] = useState(false);
-  const [displayName, setDisplayName] = useState("");
+  const [devTime, setDevTime] = useState(""); // ← テスト用時刻入力
 
   useEffect(() => {
     const initLiff = async () => {
       await liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID! });
-
       if (!liff.isLoggedIn()) {
         liff.login();
       } else {
         const profile = await liff.getProfile();
         setUserId(profile.userId);
-        setDisplayName(profile.displayName); // ← 追加！！
       }
     };
-
     initLiff();
   }, []);
 
   const getCurrentTimeHHmm = (): string => {
+    if (devTime) return devTime;
     const now = new Date();
     const hours = now.getHours().toString().padStart(2, "0");
     const minutes = now.getMinutes().toString().padStart(2, "0");
@@ -40,7 +38,6 @@ export default function Attendance() {
   const handleClockIn = () => {
     const current = getCurrentTimeHHmm();
     const currentInt = parseInt(current, 10);
-
     if (currentInt > 1100) {
       setIsLate(true);
       showToast("⚠️ 遅刻理由を入力してください");
@@ -52,7 +49,6 @@ export default function Attendance() {
   const handleClockOut = () => {
     const current = getCurrentTimeHHmm();
     const currentInt = parseInt(current, 10);
-
     if (currentInt > 2015) {
       setIsOvertime(true);
       showToast("⚠️ 残業理由を入力してください");
@@ -101,15 +97,12 @@ export default function Attendance() {
       const text = await res.text();
       console.log("🧾 GASレスポンスRaw:", text);
 
-      let result = null;
-      try {
-        result = text ? JSON.parse(text) : null;
-      } catch (err) {
-        showToast("⚠️ GASレスポンスが不正です");
-        console.error("JSONパース失敗:", err);
+      if (!text) {
+        showToast("⚠️ GASレスポンスが空です");
         return;
       }
 
+      const result = JSON.parse(text);
       const actual = result?.result;
 
       if (actual?.result === "duplicate") {
@@ -117,10 +110,10 @@ export default function Attendance() {
       } else if (actual?.result === "success" || result?.success === true) {
         showToast("✅ 打刻完了！");
       } else {
-        showToast("⚠️ 予期せぬエラーが発生しました");
+        showToast("⚠️ 予期せぬレスポンス形式です");
       }
     } catch (err) {
-      showToast("❌ 通信エラー");
+      showToast("❌ 通信エラー or JSON解析失敗");
       console.error("送信エラー:", err);
     }
   };
@@ -131,12 +124,13 @@ export default function Attendance() {
         LIFF 勤怠打刻
       </h1>
 
-      {displayName && (
-        <p className="text-sm text-gray-600">こんにちは、{displayName} さん</p>
+      {userId && (
+        <p className="text-center text-xs text-gray-500">
+          ユーザーID: {userId}
+        </p>
       )}
 
-      {/* ✅ 横並びボタン（出勤・退勤） */}
-      <div className="grid grid-cols-2 gap-4 mt-6">
+      <div className="grid grid-cols-2 gap-4 mt-4">
         <button
           onClick={handleClockIn}
           className="bg-blue-600 text-white py-3 rounded-md shadow-md text-base w-full"
@@ -150,6 +144,22 @@ export default function Attendance() {
           🏠 退勤
         </button>
       </div>
+
+      {/* ✅ テスト用：手動で打刻時刻を入力（開発時のみ） */}
+      {process.env.NODE_ENV !== "production" && (
+        <div className="mt-4">
+          <label className="block font-semibold text-sm text-gray-600">
+            ⏱ テスト用打刻時刻（例: 1101）
+          </label>
+          <input
+            type="text"
+            value={devTime}
+            onChange={(e) => setDevTime(e.target.value)}
+            className="border px-2 py-1 mt-1 w-full rounded text-sm"
+            placeholder="HHmm形式で入力（例: 2050）"
+          />
+        </div>
+      )}
 
       {(isLate || isOvertime) && (
         <div className="bg-white border rounded-md p-4 space-y-4 shadow-md">
