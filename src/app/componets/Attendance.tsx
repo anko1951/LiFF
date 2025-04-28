@@ -12,16 +12,21 @@ export default function Attendance() {
   const [overtimeReason, setOvertimeReason] = useState("");
   const [isLate, setIsLate] = useState(false);
   const [isOvertime, setIsOvertime] = useState(false);
-  const [devTime, setDevTime] = useState(""); // ← テスト用時刻入力
+  const [devTime, setDevTime] = useState(""); // テスト用打刻時刻
 
   useEffect(() => {
     const initLiff = async () => {
-      await liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID! });
-      if (!liff.isLoggedIn()) {
-        liff.login();
-      } else {
-        const profile = await liff.getProfile();
-        setUserId(profile.userId);
+      try {
+        await liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID! });
+        if (!liff.isLoggedIn()) {
+          liff.login();
+        } else {
+          const profile = await liff.getProfile();
+          console.log("✅ 取得したprofile:", profile);
+          setUserId(profile.userId);
+        }
+      } catch (err) {
+        console.error("❌ LIFF初期化エラー:", err);
       }
     };
     initLiff();
@@ -33,6 +38,12 @@ export default function Attendance() {
     const hours = now.getHours().toString().padStart(2, "0");
     const minutes = now.getMinutes().toString().padStart(2, "0");
     return `${hours}${minutes}`;
+  };
+
+  const getTodayDateJST = (): string => {
+    const now = new Date();
+    now.setHours(now.getHours() + 9);
+    return now.toISOString().slice(0, 10);
   };
 
   const handleClockIn = () => {
@@ -80,7 +91,7 @@ export default function Attendance() {
 
     const payload = {
       userId,
-      date: new Date().toISOString().slice(0, 10),
+      date: getTodayDateJST(), // ← JST日付！
       type,
       time,
       comment,
@@ -95,20 +106,29 @@ export default function Attendance() {
       });
 
       const text = await res.text();
-      console.log("🧾 GASレスポンスRaw:", text);
-
       if (!text) {
         showToast("⚠️ GASレスポンスが空です");
         return;
       }
 
       const result = JSON.parse(text);
-      const actual = result?.result;
+      const realResult = result?.result?.result;
+      const realMessage = result?.result?.message;
 
-      if (actual?.result === "duplicate") {
-        showToast(actual.message);
-      } else if (actual?.result === "success" || result?.success === true) {
+      console.log("🧾 GASレスポンス全文:", result);
+      console.log("🧾 realResult:", realResult);
+
+      if (!realResult) {
+        showToast("⚠️ レスポンスにresultがありません");
+        return;
+      }
+
+      if (realResult === "duplicate") {
+        showToast(realMessage || "この日は既に打刻されています");
+      } else if (realResult === "success") {
         showToast("✅ 打刻完了！");
+      } else if (realResult === "error") {
+        showToast(`❌ エラー: ${realMessage}`);
       } else {
         showToast("⚠️ 予期せぬレスポンス形式です");
       }
@@ -145,7 +165,6 @@ export default function Attendance() {
         </button>
       </div>
 
-      {/* ✅ テスト用：手動で打刻時刻を入力（開発時のみ） */}
       {process.env.NODE_ENV !== "production" && (
         <div className="mt-4">
           <label className="block font-semibold text-sm text-gray-600">
