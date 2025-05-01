@@ -6,13 +6,14 @@ import { useToast } from "@/hooks/useToast";
 
 export default function Attendance() {
   const [userId, setUserId] = useState("");
+  const [userName, setUserName] = useState("");
   const { showToast, Toast } = useToast();
 
   const [lateReason, setLateReason] = useState("");
   const [overtimeReason, setOvertimeReason] = useState("");
   const [isLate, setIsLate] = useState(false);
   const [isOvertime, setIsOvertime] = useState(false);
-  const [devTime, setDevTime] = useState(""); // テスト用打刻時刻
+  const [devTime, setDevTime] = useState("");
 
   useEffect(() => {
     const initLiff = async () => {
@@ -22,22 +23,40 @@ export default function Attendance() {
           liff.login();
         } else {
           const profile = await liff.getProfile();
-          console.log("✅ 取得したprofile:", profile);
           setUserId(profile.userId);
         }
       } catch (err) {
-        console.error("❌ LIFF初期化エラー:", err);
+        console.error("LIFF初期化エラー:", err);
       }
     };
     initLiff();
   }, []);
 
+  useEffect(() => {
+    if (!userId) return;
+
+    const fetchUserName = async () => {
+      try {
+        const res = await fetch("/api/proxyToNameGAS", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId }),
+        });
+        const data = await res.json();
+        if (data.name) setUserName(data.name);
+      } catch (err) {
+        console.error("名前取得失敗:", err);
+      }
+    };
+
+    fetchUserName();
+  }, [userId]);
+
   const getCurrentTimeHHmm = (): string => {
     if (devTime) return devTime;
     const now = new Date();
-    const hours = now.getHours().toString().padStart(2, "0");
-    const minutes = now.getMinutes().toString().padStart(2, "0");
-    return `${hours}${minutes}`;
+    now.setHours(now.getHours() + 9);
+    return now.toISOString().slice(11, 16).replace(":", "");
   };
 
   const getTodayDateJST = (): string => {
@@ -48,8 +67,7 @@ export default function Attendance() {
 
   const handleClockIn = () => {
     const current = getCurrentTimeHHmm();
-    const currentInt = parseInt(current, 10);
-    if (currentInt > 1100) {
+    if (parseInt(current, 10) > 1100) {
       setIsLate(true);
       showToast("⚠️ 遅刻理由を入力してください");
     } else {
@@ -59,8 +77,7 @@ export default function Attendance() {
 
   const handleClockOut = () => {
     const current = getCurrentTimeHHmm();
-    const currentInt = parseInt(current, 10);
-    if (currentInt > 2015) {
+    if (parseInt(current, 10) > 2015) {
       setIsOvertime(true);
       showToast("⚠️ 残業理由を入力してください");
     } else {
@@ -91,7 +108,7 @@ export default function Attendance() {
 
     const payload = {
       userId,
-      date: getTodayDateJST(), // ← JST日付！
+      date: getTodayDateJST(),
       type,
       time,
       comment,
@@ -106,29 +123,14 @@ export default function Attendance() {
       });
 
       const text = await res.text();
-      if (!text) {
-        showToast("⚠️ GASレスポンスが空です");
-        return;
-      }
-
       const result = JSON.parse(text);
-      const realResult = result?.result?.result;
-      const realMessage = result?.result?.message;
 
-      console.log("🧾 GASレスポンス全文:", result);
-      console.log("🧾 realResult:", realResult);
-
-      if (!realResult) {
-        showToast("⚠️ レスポンスにresultがありません");
-        return;
-      }
-
-      if (realResult === "duplicate") {
-        showToast(realMessage || "この日は既に打刻されています");
-      } else if (realResult === "success") {
+      if (result.result === "duplicate") {
+        showToast(result.message || "この日は既に打刻されています");
+      } else if (result.result === "success") {
         showToast("✅ 打刻完了！");
-      } else if (realResult === "error") {
-        showToast(`❌ エラー: ${realMessage}`);
+      } else if (result.result === "error") {
+        showToast(`❌ エラー: ${result.message}`);
       } else {
         showToast("⚠️ 予期せぬレスポンス形式です");
       }
@@ -139,83 +141,86 @@ export default function Attendance() {
   };
 
   return (
-    <div className="p-4 max-w-md mx-auto space-y-6 text-sm">
-      <h1 className="text-center text-lg font-bold text-gray-800">
-        LIFF 勤怠打刻
-      </h1>
-
-      {userId && (
-        <p className="text-center text-xs text-gray-500">
-          ユーザーID: {userId}
+    <div className="flex flex-col justify-center items-center min-h-screen bg-cyan-100 px-4">
+      <div className="bg-white rounded-lg p-6 shadow-lg w-full max-w-sm space-y-6">
+        <h1 className="text-2xl font-bold text-gray-800 text-center">
+          勤怠管理
+        </h1>
+        <p className="text-center text-sm text-gray-600">
+          {userName ? `${userName} : ${userId}` : `UID: ${userId}`}
         </p>
-      )}
 
-      <div className="grid grid-cols-2 gap-4 mt-4">
-        <button
-          onClick={handleClockIn}
-          className="bg-blue-600 text-white py-3 rounded-md shadow-md text-base w-full"
-        >
-          🚪 出勤
-        </button>
-        <button
-          onClick={handleClockOut}
-          className="bg-green-600 text-white py-3 rounded-md shadow-md text-base w-full"
-        >
-          🏠 退勤
-        </button>
-      </div>
-
-      {process.env.NODE_ENV !== "production" && (
-        <div className="mt-4">
-          <label className="block font-semibold text-sm text-gray-600">
-            ⏱ テスト用打刻時刻（例: 1101）
-          </label>
-          <input
-            type="text"
-            value={devTime}
-            onChange={(e) => setDevTime(e.target.value)}
-            className="border px-2 py-1 mt-1 w-full rounded text-sm"
-            placeholder="HHmm形式で入力（例: 2050）"
-          />
-        </div>
-      )}
-
-      {(isLate || isOvertime) && (
-        <div className="bg-white border rounded-md p-4 space-y-4 shadow-md">
-          {isLate && (
-            <div>
-              <label className="block font-semibold mb-1">遅刻理由：</label>
-              <input
-                type="text"
-                value={lateReason}
-                onChange={(e) => setLateReason(e.target.value)}
-                className="border px-2 py-2 w-full rounded"
-                placeholder="例: 電車遅延"
-              />
-            </div>
-          )}
-          {isOvertime && (
-            <div>
-              <label className="block font-semibold mb-1">残業理由：</label>
-              <input
-                type="text"
-                value={overtimeReason}
-                onChange={(e) => setOvertimeReason(e.target.value)}
-                className="border px-2 py-2 w-full rounded"
-                placeholder="例: 作業の遅れ"
-              />
-            </div>
-          )}
+        <div className="flex gap-4 mt-6 justify-center">
           <button
-            onClick={() =>
-              handleSubmitReason(isLate ? "clock_in" : "clock_out")
-            }
-            className="bg-indigo-600 text-white py-3 px-4 rounded w-full"
+            onClick={handleClockIn}
+            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md text-lg shadow-md"
           >
-            送信する
+            出勤
+          </button>
+          <button
+            onClick={handleClockOut}
+            className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-md text-lg shadow-md"
+          >
+            退勤
           </button>
         </div>
-      )}
+
+        {process.env.NODE_ENV !== "production" && (
+          <div className="mt-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              ⏱ テスト用時刻（例: 1101）
+            </label>
+            <input
+              type="text"
+              value={devTime}
+              onChange={(e) => setDevTime(e.target.value)}
+              className="border px-3 py-2 w-full rounded text-sm"
+              placeholder="例: 2050"
+            />
+          </div>
+        )}
+
+        {(isLate || isOvertime) && (
+          <div className="bg-gray-50 border rounded-md p-4 mt-4 space-y-4">
+            {isLate && (
+              <div>
+                <label className="block text-sm font-semibold mb-1">
+                  遅刻理由：
+                </label>
+                <input
+                  type="text"
+                  value={lateReason}
+                  onChange={(e) => setLateReason(e.target.value)}
+                  className="border px-3 py-2 w-full rounded text-sm"
+                  placeholder="例: 電車遅延"
+                />
+              </div>
+            )}
+            {isOvertime && (
+              <div>
+                <label className="block text-sm font-semibold mb-1">
+                  残業理由：
+                </label>
+                <input
+                  type="text"
+                  value={overtimeReason}
+                  onChange={(e) => setOvertimeReason(e.target.value)}
+                  className="border px-3 py-2 w-full rounded text-sm"
+                  placeholder="例: 作業遅れ"
+                />
+              </div>
+            )}
+            <button
+              onClick={() =>
+                handleSubmitReason(isLate ? "clock_in" : "clock_out")
+              }
+              className="bg-indigo-600 hover:bg-indigo-700 text-white py-3 w-full rounded-md text-lg"
+            >
+              送信する
+            </button>
+          </div>
+        )}
+      </div>
 
       <Toast />
     </div>
