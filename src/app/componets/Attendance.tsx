@@ -124,13 +124,18 @@ export default function Attendance() {
 
       const text = await res.text();
       const result = JSON.parse(text);
+      console.log("GASレスポンス:", result);
 
-      if (result.result === "duplicate") {
-        showToast(result.message || "この日は既に打刻されています");
-      } else if (result.result === "success") {
+      const isWrapped = result?.result?.result !== undefined;
+      const actualResult = isWrapped ? result.result.result : result.result;
+      const actualMessage = isWrapped ? result.result.message : result.message;
+
+      if (actualResult === "duplicate") {
+        showToast(actualMessage || "この日は既に打刻されています");
+      } else if (actualResult === "success") {
         showToast("✅ 打刻完了！");
-      } else if (result.result === "error") {
-        showToast(`❌ エラー: ${result.message}`);
+      } else if (actualResult === "error") {
+        showToast(`❌ エラー: ${actualMessage}`);
       } else {
         showToast("⚠️ 予期せぬレスポンス形式です");
       }
