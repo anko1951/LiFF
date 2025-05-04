@@ -189,28 +189,28 @@ export default function Attendance() {
           <div className="bg-gray-50 border rounded-md p-4 mt-4 space-y-4">
             {isLate && (
               <div>
-                <label className="block text-sm font-semibold mb-1">
+                <label className="block text-sm font-semibold mb-1 text-gray-800">
                   遅刻理由：
                 </label>
                 <input
                   type="text"
                   value={lateReason}
                   onChange={(e) => setLateReason(e.target.value)}
-                  className="border px-3 py-2 w-full rounded text-sm"
+                  className="border px-3 py-2 w-full rounded text-sm bg-white placeholder-gray-500 text-gray-900"
                   placeholder="例: 電車遅延"
                 />
               </div>
             )}
             {isOvertime && (
               <div>
-                <label className="block text-sm font-semibold mb-1">
+                <label className="block text-sm font-semibold mb-1 text-gray-800">
                   残業理由：
                 </label>
                 <input
                   type="text"
                   value={overtimeReason}
                   onChange={(e) => setOvertimeReason(e.target.value)}
-                  className="border px-3 py-2 w-full rounded text-sm"
+                  className="border px-3 py-2 w-full rounded text-sm bg-white placeholder-gray-500 text-gray-900"
                   placeholder="例: 作業遅れ"
                 />
               </div>

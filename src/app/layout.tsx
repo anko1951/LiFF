@@ -3,7 +3,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "勤怠管理",
+  title: "Grandir-勤怠管理-",
 };
 
 export default function RootLayout({
