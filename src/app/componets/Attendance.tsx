@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import liff from "@line/liff";
 import { useToast } from "@/hooks/useToast";
 
 export default function Attendance() {
@@ -18,6 +17,7 @@ export default function Attendance() {
   useEffect(() => {
     const initLiff = async () => {
       try {
+        const liff = (await import("@line/liff")).default;
         await liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID! });
         if (!liff.isLoggedIn()) {
           liff.login();
