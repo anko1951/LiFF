@@ -1,9 +1,8 @@
-import Attendance from "./componets/Attendance.tsx";
+// page.tsx
+"use client";
 
-export default function Home() {
-  return (
-    <main>
-      <Attendance />
-    </main>
-  );
+import Attendance from "./componets/Attendance";
+
+export default function HomePage() {
+  return <Attendance />;
 }

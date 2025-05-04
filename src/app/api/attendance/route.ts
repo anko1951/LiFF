@@ -1,39 +1,39 @@
-import { NextResponse } from "next/server";
-
 export async function POST(req: Request) {
-  try {
-    const { userId, type } = await req.json();
-    if (!userId || !type) {
-      throw new Error("Missing userId or type");
-    }
+  const body = await req.json();
 
+  try {
     const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbxdBRCRJgT-i7Nhbof2KxvVWohj7UtkDOAIMy3-TpD-oINp7RxB74RmjF5w9k_sW8Cj/exec",
+      "https://script.google.com/macros/s/AKfycbwvSNLeclCpf0NNnS4L0q5Oewd8GNCmUcn3n44gq_y7GQRAL2ue48zOEoz1DPXJerKY/exec",
       {
         method: "POST",
-        mode: "cors", // CORS を明示
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, type }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
       }
     );
 
-    if (!response.ok) {
-      throw new Error(
-        `Google Apps Script returned ${
-          response.status
-        }: ${await response.text()}`
+    const text = await response.text();
+    console.log("🟢 GASレスポンス:", text);
+
+    try {
+      const result = JSON.parse(text);
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON from GAS", raw: text }),
+        { status: 500 }
       );
     }
-
-    const data = await response.json();
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error("API Error:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: error instanceof Error ? error.message : "Unknown error",
-      },
+  } catch (err) {
+    console.error("🔴 fetch失敗:", err);
+    return new Response(
+      JSON.stringify({ error: "Failed to reach GAS", detail: String(err) }),
       { status: 500 }
     );
   }
